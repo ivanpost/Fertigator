@@ -38,7 +38,11 @@ xx = len(z)  # количество элементов (для проверки)
 print xx    # печать к-ва элементов
 print z
 
+#Массив в словарь
+d = {'Ahour' : z[0], 'Amin' : z[1], 'Aweek' : z[2], 'Atsns' : z[3],  'Atemp1' : z[4],
+        'Achns' : z[7], 'Arain' : z[8],  'Atemp2' : z[9]}
 
+print 'Temp2:  ' + str(d['Atemp2'])
 # Создаем соединение с файлом базы данных
 conn = sqlite3.connect("/srv/www/aqstatus.db")
 
@@ -46,23 +50,21 @@ conn = sqlite3.connect("/srv/www/aqstatus.db")
 cursor = conn.cursor()
 
 # Делаем SELECT запрос к базе данных, используя обычный SQL-синтаксис
-cursor.execute("""SELECT aqhour, aqmin, aqchnsts,
-             aqtemp1, aqtemp2, aqrnsens FROM aqstatus WHERE id=(SELECT max(id) FROM aqstatus)""")
+cursor.execute("""SELECT aqhour, aqchnsts
+                FROM chnstat WHERE idch=(SELECT max(idch) FROM chnstat)""")
 for row in cursor:
         print row
 
-if z[0] == row[0]  and z[7] == row[2] and  z[4] == row[3] and z[9] == row[4] and z[8] == row[5]:
-    print 'Exit wo!'
-    sys.exit(0)
-else:
+if d['Ahour'] != row[0]  or d['Achns'] != row[1] :
+
     now = round(time.time()) # округленное utime
 
     # SQL скрипт с подставновкой по порядку на места знаков вопросов:
-    aqscript = """INSERT INTO aqstatus(aqhour, aqmin, aqwkday, aqchnsts,
-                aqtemp1, aqtemp2, aqrnsens, untme) VALUES (?,?,?,?,?,?,?,?)"""
+    aqscript = """INSERT INTO chnstat(aqhour, aqmin, aqchnsts,  untme)
+                 VALUES (?,?,?,?)"""
 
     # Аргументы для записи в таблицу
-    newstrng = (z[0],z[1], z[2], z[7], z[4], z[9], z[8], now)
+    newstrng = (d['Ahour'], d['Amin'], d['Achns'], now)
 
     try:
         cursor.execute(aqscript, newstrng)
@@ -71,9 +73,39 @@ else:
         print("Error: ", err)
     else:
         conn.commit() # Сохраняем изменения
-        print z[0]
-        print row[0]
-        print "------"
+        #print z[0]
+        #print row[0]
+        #print "------"
+
+
+# Делаем SELECT запрос к базе данных, используя обычный SQL-синтаксис
+cursor.execute("""SELECT aqhour, aqtemp1, aqtemp2, aqrnsens
+                  FROM tempstat WHERE idt=(SELECT max(idt) FROM tempstat)""")
+for row in cursor:
+        print row
+
+if d['Ahour'] != row[0]  or d['Atemp1'] != row[1] or d['Atemp2'] != row[2] or d['Arain'] != row[3]:
+
+    now = round(time.time()) # округленное utime
+
+    # SQL скрипт с подставновкой по порядку на места знаков вопросов:
+    aqscript = """INSERT INTO tempstat(aqhour, aqmin, aqtemp1, aqtemp2, aqrnsens,
+                  untme) VALUES (?,?,?,?,?,?)"""
+
+    # Аргументы для записи в таблицу
+    newstrng = (d['Ahour'], d['Amin'], d['Atemp1'], d['Atemp2'], d['Arain'], now)
+
+    try:
+        cursor.execute(aqscript, newstrng)
+        result = cursor.fetchall()
+    except sqlite3.DatabaseError as err:
+        print("Error: ", err)
+    else:
+        conn.commit() # Сохраняем изменения
+        #print z[0]
+        #print row[0]
+        #print "------"
+
 
 # Закрываем соединение с базой данных
 conn.close()
